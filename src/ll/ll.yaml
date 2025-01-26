@@ -1,0 +1,330 @@
+config:
+  default_byte_order: LE
+  # buffer_address_type: u16
+  command_address_type: u8
+  register_address_type: u16
+  defmt_feature: "defmt-03"
+
+pwm_update:
+  type: command
+  description: |
+    Update the PWM register values, persisting them to the drivers.
+
+    Only allowed if the device is not in hardware shutdown mode `SDB = H` and not in software shutdown mode `SSD = 1`.
+  address: 0xFD
+  size_bits_in: 8
+  fields_in:
+    value:
+      base: uint
+      start: 0
+      end: 8
+
+page_write:
+  type: command
+  address: 0xFE
+  size_bits_in: 8
+  description: |
+    **Do not call outside of this crate**. Point device to specified page, but only allowed if the `page_write_unlock` command with the correct passphrase was issued first.
+
+    Only required for I2C mode, and then it will be internally issued by the `ll` driver. Do not call this, instead call the `ll` method `set_page`.
+  fields_in:
+    value:
+      base: uint
+      start: 0
+      end: 2
+      try_conversion:
+        name: Page
+        page_0: 0
+        page_1: 1
+        page_2: 2
+
+page_write_unlock:
+  type: command
+  address: 0xFF
+  size_bits_in: 8
+  description: |
+    Write the passphrase to unlock writing the `page_write` command.
+
+    After writing the page number, this command needs to be re-issued.
+    It is unnecessary to issue the locked passphrase after writing a page.
+  fields_in:
+    value:
+      base: uint
+      start: 0
+      end: 8
+      conversion:
+        name: Passphrase
+        unlocked: 0xC5
+        locked: "catch_all"
+
+sl_cs:
+  type: register
+  address: 0x25B
+  access: RW
+  size_bits: 8
+  description: |
+    Scaling register control the DC output current of each dot for CS1~CS30, with no distinction between SW's.
+
+    Each dot has a byte to modulate the scaling in 256 steps.
+  reset_value: 0x00
+  repeat:
+    count: 30
+    stride: 1
+  fields:
+    sl:
+      base: uint
+      start: 0
+      end: 8
+
+sl_cs_sw:
+  type: register
+  address: 0x279
+  access: RW
+  size_bits: 8
+  description: |
+    Scaling register control the DC output current of each dot for CS31~CS33, with a separate register for SW1~SW12.
+
+    Each dot has a byte to modulate the scaling in 256 steps.
+  reset_value: 0x00
+  repeat:
+    count: 36
+    stride: 1
+  fields:
+    sl:
+      base: uint
+      start: 0
+      end: 8
+
+configuration:
+  type: register
+  address: 0x2A0
+  access: RW
+  size_bits: 8
+  description: Sets the operating mode.
+  reset_value: 0x00
+  fields:
+    ssd:
+      base: uint
+      start: 0
+      end: 1
+      conversion:
+        name: ShutdownControl
+        software_shutdown: 0b0
+        normal_operation: 0b1
+    pwmm:
+      base: uint
+      start: 2
+      end: 4
+      conversion:
+        name: PWMMode
+        mode_6plus2_bit: 0b00
+        mode_8_bit: 0b01
+        mode_8plus4_bit: 0b10
+        mode_12_bit: 0b11
+    sws:
+      base: uint
+      start: 4
+      end: 8
+
+global_current_control:
+  type: register
+  address: 0x2A1
+  access: RW
+  size_bits: 8
+  description: The Global Current Control Register modulates all CSy (x=1~33) DC current which is noted as IOUT in 256 steps.
+  reset_value: 0x00
+  fields:
+    gcc:
+      base: uint
+      start: 0
+      end: 8
+
+deghost_enable:
+  type: register
+  address: 0x2A2
+  access: RW
+  size_bits: 8
+  description: Enables/disables de-ghost function and select the time as well as resister for the detection.
+  reset_value: 0x00
+  fields:
+    cs_mode:
+      base: bool
+      start: 0
+      description: CS pull up during de-ghost time
+    sw_mode:
+      base: bool
+      start: 1
+      description: SW pull down during de-ghost time
+    time:
+      base: uint
+      start: 2
+      end: 4
+    dgt_en:
+      base: bool
+      start: 7
+      description: Enable de-ghost function.
+
+resistor_selection:
+  type: register
+  address: 0x2A3
+  access: RW
+  size_bits: 8
+  description: Set pull down resistor for SWx and pull up resistor for CSy.
+  reset_value: 0x00
+  fields:
+    cspur:
+      base: uint
+      start: 0
+      end: 3
+      conversion:
+        name: CSyPullUpSelection
+        no_pull_up: 0b000
+        minus_2V3: 0b001
+        minus_2V0: 0b010
+        minus_1V7: 0b011
+        minus_1V4: 0b100
+        minus_1V1: 0b101
+        minus_0V8: 0b110
+        minus_0V0: 0b111
+    swpdr:
+      base: uint
+      start: 4
+      end: 7
+      conversion:
+        name: SWxPullDownSelection
+        no_pull_down: 0b000
+        plus_2V6: 0b001
+        plus_2V2: 0b010
+        plus_1V9: 0b011
+        plus_1V6: 0b100
+        plus_1V2: 0b101
+        plus_0V9: 0b110
+        gnd: 0b111
+    phc:
+      base: uint
+      start: 7
+      end: 8
+      conversion:
+        name: PhaseChoice
+        delay_0_degrees: 0b0
+        delay_180_degrees: 0b1
+
+pwm_frequency:
+  type: register
+  address: 0x2A4
+  access: RW
+  size_bits: 8
+  description: |
+    Sets the PWM frequency as well as it enables low/normal Frequency mode.
+  reset_value: 0x00
+  fields:
+    pfs:
+      base: uint
+      start: 0
+      end: 3
+      try_conversion:
+        name: FrequencySetting
+        Osc24MHz: 0b000
+        Osc12MHz: 0b001
+        Osc6MHz: 0b010
+        Osc3MHz: 0b011
+        Osc1500KHz: 0b100
+        Osc750KHz: 0b101
+        Osc375KHz: 0b110
+    lfm:
+      base: uint
+      start: 5
+      end: 6
+      conversion:
+        name: LowFrequencyMode
+        normal: 0b0
+        div3: 0b1
+
+spread_spectrum:
+  type: register
+  address: 0x2A5
+  access: RW
+  size_bits: 8
+  description: |
+    Enables the spread spectrum function, and its range/cycle time can be selected by the corresponding bits.
+
+    When SSP enables, the spread spectrum function will be enabled and the SSR & SSCLT bits will adjust the
+    range and cycle time of spread spectrum function. It is recommended that PFS<010 because when using at
+    the low operating frequency it may cause flashing of LED at lower PWM.
+  reset_value: 0x00
+  fields:
+    ssclt:
+      base: uint
+      start: 0
+      end: 2
+      conversion:
+        name: SpreadSpectrumCycleTime
+        time_1ms8: 0b00
+        time_1ms1: 0b01
+        time_0ms82: 0b10
+        time_0ms66: 0b11
+    ssr:
+      base: uint
+      start: 2
+      end: 4
+      try_conversion:
+        name: SpreadSpectrumRange
+        range_5pct: 0b00
+        range_20pct: 0b10
+        range_25pct: 0b11
+    ssp:
+      base: bool
+      start: 4
+    synce:
+      base: uint
+      start: 6
+      end: 8
+      conversion:
+        name: SyncFunction
+        disable: default
+        slave: 0b10
+
+open_short:
+  type: register
+  address: 0x2A6
+  access: RW
+  size_bits: 8
+  description: |
+    Enabled/disables open/short detect information which can be detected by selecting the equivalent SW1~12.
+
+    Needs to be reset to 0x00 before configuring a new test. Measures once after being set.
+  reset_value: 0x00
+  fields:
+    sw:
+      base: uint
+      start: 0
+      end: 4
+    mode:
+      base: uint
+      start: 6
+      end: 8
+      try_conversion:
+        name: OpenShortMode
+        disable: 0b00
+        open: 0b10
+        short: 0b11
+
+open_short_lines:
+  type: register
+  address: 0x2A7
+  access: RO
+  size_bits: 40
+  description: After setting the `open_short` register to the correct value, the callback can be read from this register.
+  fields:
+    sw:
+      base: uint
+      start: 0
+      end: 33
+
+reset:
+  type: register
+  address: 0x2DF
+  access: WO
+  size_bits: 8
+  description: Write to this register to reset all registers to their default value.
+  reset_value: 0xA5
