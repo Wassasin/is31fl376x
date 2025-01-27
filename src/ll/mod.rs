@@ -60,10 +60,12 @@ pub struct CSIndex {
 
 impl CSIndex {
     pub const fn from_n(n: u8) -> Self {
-        Self { i: n - 1 }
+        assert!(n >= 1);
+        Self::from_i(n - 1)
     }
 
     pub const fn from_i(i: u8) -> Self {
+        assert!(i < 33);
         Self { i }
     }
 
@@ -86,10 +88,11 @@ impl CSIndex {
 }
 
 #[derive(Default)]
+#[cfg_attr(feature = "defmt-03", derive(defmt::Format))]
 pub struct CSxPWMs([u8; 18]);
 
 impl CSxPWMs {
-    pub const fn set_sw(&mut self, sw_i: u8, x: u16) {
+    pub const fn set_sw_12bit(&mut self, sw_i: u8, x: u16) {
         let l = (x & 0x0f) as u8;
         let h = ((x >> 4) & 0xff) as u8;
 
@@ -104,6 +107,13 @@ impl CSxPWMs {
         } else {
             self.0[start + 2] = (self.0[start + 2] & 0x0f) | (l << 4);
         }
+    }
+
+    pub const fn set_sw_8bit(&mut self, sw_i: u8, x: u8) {
+        let group = (sw_i / 2) as usize;
+        let member = (sw_i % 2) as usize;
+        let start = group * 3;
+        self.0[start + member] = x;
     }
 }
 

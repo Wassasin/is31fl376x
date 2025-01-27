@@ -88,7 +88,7 @@ async fn example_pwm() {
     let mut ll = ll::Device::new(ll::spi::DeviceInterface::new(&mut spi));
 
     let mut buf = CSxPWMs::default();
-    buf.set_sw(2, 0b1011_1010_1000);
+    buf.set_sw_12bit(2, 0b1011_1010_1000);
     ll.pwm_cs(ll::CSIndex::from_n(2), &buf).await.unwrap();
     ll.pwm_cs(ll::CSIndex::from_n(27), &buf).await.unwrap();
 

@@ -21,7 +21,7 @@ impl<I2C: I2c> DeviceInterface<I2C> {
         Self {
             i2c,
             address,
-            page: 0x02,
+            page: 0xff, // use some bogus page
         }
     }
 
