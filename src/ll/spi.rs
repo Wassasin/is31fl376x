@@ -28,7 +28,7 @@ impl<SPI: SpiDevice> device_driver::AsyncRegisterInterface for DeviceInterface<S
         data: &[u8],
     ) -> Result<(), Self::Error> {
         let address: RegisterAddress = address.into();
-        let preamble = [0b1011_0000 | address.page(), address.register()];
+        let preamble = [0b0011_0000 | address.page(), address.register()];
         let mut operations = [Operation::Write(&preamble), Operation::Write(data)];
         self.spi.transaction(&mut operations).await?;
         Ok(())
@@ -41,7 +41,7 @@ impl<SPI: SpiDevice> device_driver::AsyncRegisterInterface for DeviceInterface<S
         data: &mut [u8],
     ) -> Result<(), Self::Error> {
         let address: RegisterAddress = address.into();
-        let preamble = [0b0011_0000 | address.page(), address.register()];
+        let preamble = [0b1011_0000 | address.page(), address.register()];
         let mut operations = [Operation::Write(&preamble), Operation::Read(data)];
         self.spi.transaction(&mut operations).await?;
         Ok(())
@@ -61,7 +61,7 @@ impl<SPI: SpiDevice> device_driver::AsyncCommandInterface for DeviceInterface<SP
         _size_bits_out: u32,
         _output: &mut [u8],
     ) -> Result<(), Self::Error> {
-        let address = [0b1011_0000, address];
+        let address = [0b0011_0000, address];
         let mut operations = [Operation::Write(&address), Operation::Write(input)];
         self.spi.transaction(&mut operations).await?;
         Ok(())

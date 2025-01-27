@@ -5,7 +5,7 @@ use crate::ll::{self, CSxPWMs};
 fn regw(page: u8, register: u8, values: &[u8]) -> Vec<Transaction<u8>> {
     vec![
         Transaction::transaction_start(),
-        Transaction::write_vec(vec![0b1011_0000 | page, register]),
+        Transaction::write_vec(vec![0b0011_0000 | page, register]),
         Transaction::write_vec(values.to_vec()),
         Transaction::transaction_end(),
     ]
@@ -14,7 +14,7 @@ fn regw(page: u8, register: u8, values: &[u8]) -> Vec<Transaction<u8>> {
 fn regr(page: u8, register: u8, values: &[u8]) -> Vec<Transaction<u8>> {
     vec![
         Transaction::transaction_start(),
-        Transaction::write_vec(vec![0b0011_0000 | page, register]),
+        Transaction::write_vec(vec![0b1011_0000 | page, register]),
         Transaction::read_vec(values.to_vec()),
         Transaction::transaction_end(),
     ]
